@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure - Stremio-TMDB-Dic</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dark-mode">
+    <div class="container">
+        <div class="dark-mode-toggle" id="dark-mode-toggle">🌞</div>
+        
+        <h1>Stremio TMDB Dice</h1>
+        
+        <div class="form-group">
+            <label for="language">Language</label>
+            <select id="language">
+                <option value="">Select your language</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="api-key">TMDB API Key (<a href="https://www.themoviedb.org/settings/api" target="_blank" style="color: #007aff;">Get it here</a>)</label>
+            <input type="text" id="tmdb-api-key">
+        </div>
+
+        <div class="form-group">
+            <label for="rpdb-api-key">RPDB API Key (<a href="https://ratingposterdb.com/api-key" target="_blank" style="color: #007aff;">Get it here</a>)</label>
+            <input type="text" id="rpdb-api-key">
+        </div>
+
+        <div class="form-group">
+            <label for="fanart-api-key">Fanart API Key (<a href="https://fanart.tv/get-an-api-key" target="_blank" style="color: #007aff;">Get it here</a>)</label>
+            <input type="text" id="fanart-api-key">
+        </div>
+
+        <div class="form-group">
+            <div class="label-checkbox-group">
+                <input type="checkbox" id="hide-no-poster">
+                <label for="hide-no-poster">Hide items without poster</label>
+            </div>
+            <p class="hint">Most of the time it is not quality items that deserve attention that are returned.</p>
+        </div>
+
+        <div class="button-group">
+            <button class="btn install">Install</button>
+            <button class="btn copy-link">Copy link</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal" id="modal">
+        <div class="modal-header" id="modal-header">Warning</div>
+        <div class="modal-body" id="modal-body">Please fill in all required fields: TMDB API Key and Language.</div>
+        <div class="modal-footer">
+            <button class="btn btn-error" id="close-modal">OK</button>
+        </div>
+    </div>
+    
+    <div class="notification-success" id="notification-success">
+        <span>&#10004;</span>
+        <span id="notification-text">Link copied to clipboard!</span>
+    </div>
+
+    <script src="js/languages.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggle = document.getElementById('dark-mode-toggle');
+        toggle.textContent = '🌜';
+
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            toggle.textContent = document.body.classList.contains('dark-mode') ? '🌜' : '🌞';
+        });
+
+        function populateLanguageDropdown() {
+            const dropdown = document.getElementById('language');
+            languages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang.iso_639_1;
+                option.textContent = lang.english_name + (lang.name ? ` (${lang.name})` : '');
+                dropdown.appendChild(option);
+            });
+        }
+        populateLanguageDropdown();
+
+        function getConfig() {
+            const tmdbApiKey = document.getElementById('tmdb-api-key').value;
+            const rpdbApiKey = document.getElementById('rpdb-api-key').value;
+            const fanartApiKey = document.getElementById('fanart-api-key').value;
+            const language = document.getElementById('language').value;
+
+            if (!tmdbApiKey || !language) {
+                showModal('Warning', 'Please fill in all required fields: TMDB API Key and Language.', 'btn-error');
+                return null;
+            }
+
+            const config = {
+                tmdbApiKey: tmdbApiKey,
+                rpdbApiKey: rpdbApiKey,
+                fanartApiKey: fanartApiKey,
+                language: language,
+                hideNoPoster: document.getElementById('hide-no-poster').checked,
+            };
+            return config;
+        }
+
+        function showModal(headerText, message, buttonClass) {
+            const modal = document.getElementById('modal');
+            const overlay = document.getElementById('modal-overlay');
+            const modalHeader = document.getElementById('modal-header');
+            const modalBody = document.getElementById('modal-body');
+            const closeModalButton = document.getElementById('close-modal');
+
+            modalHeader.textContent = headerText;
+            modalBody.textContent = message;
+            closeModalButton.className = 'btn ' + buttonClass;
+            modal.classList.add('show');
+            overlay.classList.add('show');
+
+            closeModalButton.onclick = () => {
+                modal.classList.remove('show');
+                overlay.classList.remove('show');
+            };
+        }
+
+        function showSuccessNotification(message) {
+            const notification = document.getElementById('notification-success');
+            const notificationText = document.getElementById('notification-text');
+
+            notificationText.textContent = message;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function getStremioLink() {
+            const config = getConfig();
+            if (!config) return;
+            return "stremio://" + window.location.host + "/" + encodeURIComponent(JSON.stringify(config)) + "/manifest.json";
+        }
+
+        function getHttpsLink() {
+            const config = getConfig();
+            if (!config) return;
+            return "https://" + window.location.host + "/" + encodeURIComponent(JSON.stringify(config)) + "/manifest.json";
+        }
+
+        document.querySelector('.install').addEventListener('click', () => {
+            const installURL = getStremioLink();
+            if (installURL) {
+                window.location.href = installURL;
+            }
+        });
+
+        document.querySelector('.copy-link').addEventListener('click', () => {
+            const copyURL = getHttpsLink();
+            if (copyURL) {
+                navigator.clipboard.writeText(copyURL).then(() => {
+                    showSuccessNotification('Link copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy the link: ', err);
+                });
+            }
+        });
+    });
+    </script>
+</body>
+</html>
