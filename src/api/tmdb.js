@@ -17,14 +17,19 @@ const getGenreId = (mediaType, genreName) =>
         });
     });
 
-const buildQueryParams = (params) => {
+const buildQueryParams = (params, mediaType) => {
     const queryParams = [];
 
     if (params.year) {
         const [startYear, endYear] = params.year.split('-');
         if (startYear && endYear) {
-            queryParams.push(`primary_release_date.gte=${startYear}-01-01`);
-            queryParams.push(`primary_release_date.lte=${endYear}-12-31`);
+            if (mediaType === 'movie') {
+                queryParams.push(`primary_release_date.gte=${startYear}-01-01`);
+                queryParams.push(`primary_release_date.lte=${endYear}-12-31`);
+            } else if (mediaType === 'tv') {
+                queryParams.push(`first_air_date.gte=${startYear}-01-01`);
+                queryParams.push(`first_air_date.lte=${endYear}-12-31`);
+            }
         }
     }
 
@@ -68,7 +73,7 @@ const fetchData = async (type, id, extra, cacheDuration = '3d', tmdbApiKey, rpdb
         const initialQueryParams = buildQueryParams({
             ...extra,
             page: 1
-        });
+        }, mediaType);
         const initialUrl = `${TMDB_BASE_URL}/discover/${mediaType}?api_key=${tmdbApiKey}&${initialQueryParams}`;
         log.debug(`Fetching initial data from TMDB to get total_pages: ${initialUrl}`);
 
@@ -97,7 +102,7 @@ const fetchData = async (type, id, extra, cacheDuration = '3d', tmdbApiKey, rpdb
         const queryParams = buildQueryParams({
             ...extra,
             page: randomPage
-        });
+        }, mediaType);
         const url = `${TMDB_BASE_URL}/discover/${mediaType}?api_key=${tmdbApiKey}&${queryParams}`;
         log.debug(`Fetching from TMDB: ${url}`);
 
